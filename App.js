@@ -2,22 +2,26 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
 import { AppLoading, Permissions } from 'expo';
 import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import * as FileSystem from "expo-file-system";
 import WaveForm from 'react-native-audiowaveform';
 
+const BACKGROUND_COLOR = "#FFF8ED";
+
+
 function WaveformList(props) {
-  // return props.recordingArr.map((uri) =>
-  //   // <Text>
-  //   //   {uri}
-  //   // </Text>
-  //   <WaveForm
-  //     source={require(uri)}
-  //     waveFormStyle={{ waveColor: 'red', scrubColor: 'white' }}
-  //   >
-  //   </WaveForm>
-  // );
-  return (<Text>{props.recordingArr[props.recordingArr.length - 1]}</Text>)
+  return props.recordingArr.map((uri) =>
+    // <Text>
+    //   {uri}
+    // </Text>
+    <WaveForm
+      source={uri}
+      waveFormStyle={{ waveColor: 'red', scrubColor: 'white' }}
+    >
+    </WaveForm>
+  );
+  // return (<Text>{props.recordingArr[props.recordingArr.length - 1]}</Text>)
 }
 
 export default function App() {
@@ -28,6 +32,13 @@ export default function App() {
     isRecording: false,
     recordingDuration: null,
   });
+  const [soundStatus, setSoundStatus] = useState({
+    soundPosition: null,
+    soundDuration: null,
+    isPlaying: false
+  });
+
+  let sound = null
 
   recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
 
@@ -40,7 +51,7 @@ export default function App() {
     getPermission()
   }, []);
 
-  updateScreenForRecordingStatus = (status) => {
+  function updateScreenForRecordingStatus(status) {
     if (status.canRecord) {
       setRecordingStatus({
         isRecording: status.isRecording,
@@ -51,6 +62,80 @@ export default function App() {
         isRecording: false,
         recordingDuration: status.durationMillis,
       });
+    }
+  }
+
+  function updateScreenForSoundStatus(status) {
+    if (status.isLoaded) {
+      setSoundStatus({
+        soundDuration: status.durationMillis ?? null,
+        soundPosition: status.positionMillis,
+        shouldPlay: status.shouldPlay,
+        isPlaying: status.isPlaying,
+        rate: status.rate,
+        muted: status.isMuted,
+        volume: status.volume,
+        shouldCorrectPitch: status.shouldCorrectPitch,
+        isPlaybackAllowed: true,
+      });
+    } else {
+      this.setState({
+        soundDuration: null,
+        soundPosition: null,
+        isPlaybackAllowed: false,
+      });
+      if (status.error) {
+        console.log(`FATAL PLAYER ERROR: ${status.error}`);
+      }
+    }
+  }
+
+  function getMMSSFromMillis(millis) {
+    const totalSeconds = millis / 1000;
+    const seconds = Math.floor(totalSeconds % 60);
+    const minutes = Math.floor(totalSeconds / 60);
+
+    const padWithZero = (number) => {
+      const string = number.toString();
+      if (number < 10) {
+        return "0" + string;
+      }
+      return string;
+    };
+    return padWithZero(minutes) + ":" + padWithZero(seconds);
+  }
+
+  function getSeekSliderPosition() {
+    if (
+      sound != null &&
+      soundStatus.soundPosition != null &&
+      soundStatus.soundDuration != null
+    ) {
+      return soundStatus.soundPosition / soundStatus.soundDuration;
+    }
+    return 0;
+  }
+
+  function getPlaybackTimestamp() {
+    if (
+      sound != null &&
+      soundStatus.soundPosition != null &&
+      soundStatus.soundDuration != null
+    ) {
+      return `${getMMSSFromMillis(
+        soundStatus.soundPosition
+      )} / ${getMMSSFromMillis(soundStatus.soundDuration)}`;
+    }
+    return "";
+  }
+
+  function onPlayPausePressed() {
+    if (sound != null) {
+      if (this.state.isPlaying) {
+        this.sound.pauseAsync();
+      } else {
+        this.sound.playAsync();
+      }
     }
   };
 
@@ -82,7 +167,18 @@ export default function App() {
     const uri = recording.getURI();
     setRecordingArr(recordingArr.concat(uri))
     console.log('Recording stopped and stored at', uri);
-    console.log(recordingArr.length)
+    // Get sound for playback
+    const { new_sound, status } = await recording.createNewLoadedSoundAsync(
+      {
+        isLooping: true,
+        isMuted: false,
+        volume: 1.0,
+        rate: 1.0,
+        shouldCorrectPitch: true,
+      },
+      updateScreenForSoundStatus
+    );
+    sound = new_sound;
   }
 
 
@@ -108,6 +204,40 @@ export default function App() {
       <Text>{recordingStatus.isRecording ? "recording" : "not recording"}</Text>
       <WaveformList recordingArr={recordingArr} />
       <StatusBar style="auto" />
+      <View style={styles.playbackContainer}>
+        <TouchableHighlight
+          underlayColor={BACKGROUND_COLOR}
+          style={styles.wrapper}
+          onPress={onPlayPausePressed}
+        // disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+        >
+          <Image
+            style={styles.image}
+            source={
+              this.state.isPlaying
+                ? Icons.PAUSE_BUTTON.module
+                : Icons.PLAY_BUTTON.module
+            }
+          />
+        </TouchableHighlight>
+        <Slider
+          style={styles.playbackSlider}
+          // trackImage={Icons.TRACK_1.module}
+          // thumbImage={Icons.THUMB_1.module}
+          value={getSeekSliderPosition()}
+          onValueChange={onSeekSliderValueChange}
+          onSlidingComplete={onSeekSliderSlidingComplete}
+        // disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
+        />
+        <Text
+          style={[
+            styles.playbackTimestamp,
+            { fontFamily: "cutive-mono-regular" },
+          ]}
+        >
+          {getPlaybackTimestamp()}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -122,5 +252,22 @@ const styles = StyleSheet.create({
   ButtonStyle: {
     backgroundColor: '#9DEBD9',
     padding: 10
-  }
+  },
+  playbackContainer: {
+    flex: 1,
+    flexDirection: "column",
+    justifyContent: "space-between",
+    alignItems: "center",
+    alignSelf: "stretch",
+    minHeight: Icons.THUMB_1.height * 2.0,
+    maxHeight: Icons.THUMB_1.height * 2.0,
+  },
+  playbackSlider: {
+    alignSelf: "stretch",
+  },
+  playbackTimestamp: {
+    textAlign: "right",
+    alignSelf: "stretch",
+    paddingRight: 20,
+  },
 });

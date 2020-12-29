@@ -1,27 +1,27 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from 'react';
 import { AppLoading, Permissions } from 'expo';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TouchableHighlight, Image } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import * as FileSystem from "expo-file-system";
-import WaveForm from 'react-native-audiowaveform';
+// import WaveForm from 'react-native-audiowaveform';
 
 const BACKGROUND_COLOR = "#FFF8ED";
 
 
 function WaveformList(props) {
-  return props.recordingArr.map((uri) =>
-    // <Text>
-    //   {uri}
-    // </Text>
-    <WaveForm
-      source={uri}
-      waveFormStyle={{ waveColor: 'red', scrubColor: 'white' }}
-    >
-    </WaveForm>
-  );
-  // return (<Text>{props.recordingArr[props.recordingArr.length - 1]}</Text>)
+  // return props.recordingArr.map((uri) =>
+  //   // <Text>
+  //   //   {uri}
+  //   // </Text>
+  //   <WaveForm
+  //     source={uri}
+  //     waveFormStyle={{ waveColor: 'red', scrubColor: 'white' }}
+  //   >
+  //   </WaveForm>
+  // );
+  return (<Text>{props.recordingArr[props.recordingArr.length - 1]}</Text>)
 }
 
 export default function App() {
@@ -35,21 +35,14 @@ export default function App() {
   const [soundStatus, setSoundStatus] = useState({
     soundPosition: null,
     soundDuration: null,
-    isPlaying: false
+    isPlaying: false,
+    isPlaybackAllowed: false,
   });
 
   let sound = null
+  let isSeeking = false
 
   recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
-
-  useEffect(() => {
-    async function getPermission() {
-      console.log('Requesting permissions..');
-      const response = await Audio.requestPermissionsAsync();
-      setRecordingPermission(response.status === "granted")
-    }
-    getPermission()
-  }, []);
 
   function updateScreenForRecordingStatus(status) {
     if (status.canRecord) {
@@ -70,16 +63,11 @@ export default function App() {
       setSoundStatus({
         soundDuration: status.durationMillis ?? null,
         soundPosition: status.positionMillis,
-        shouldPlay: status.shouldPlay,
         isPlaying: status.isPlaying,
-        rate: status.rate,
-        muted: status.isMuted,
-        volume: status.volume,
-        shouldCorrectPitch: status.shouldCorrectPitch,
         isPlaybackAllowed: true,
       });
     } else {
-      this.setState({
+      setSoundStatus({
         soundDuration: null,
         soundPosition: null,
         isPlaybackAllowed: false,
@@ -104,6 +92,21 @@ export default function App() {
     };
     return padWithZero(minutes) + ":" + padWithZero(seconds);
   }
+
+  function onSeekSliderValueChange(value) {
+    if (sound != null && !isSeeking) {
+      isSeeking = true;
+      sound.pauseAsync();
+    }
+  };
+
+  async function onSeekSliderSlidingComplete(value) {
+    if (sound != null) {
+      isSeeking = false;
+      const seekPosition = value * (soundStatus.soundDuration || 0);
+      sound.playFromPositionAsync(seekPosition);
+    }
+  };
 
   function getSeekSliderPosition() {
     if (
@@ -131,10 +134,10 @@ export default function App() {
 
   function onPlayPausePressed() {
     if (sound != null) {
-      if (this.state.isPlaying) {
-        this.sound.pauseAsync();
+      if (soundStatus.isPlaying) {
+        sound.pauseAsync();
       } else {
-        this.sound.playAsync();
+        sound.playAsync();
       }
     }
   };
@@ -198,7 +201,6 @@ export default function App() {
       >
         <Image
           source={require('./assets/round_mic_black_48pt_3x.png')}
-          style={styles.ImageIconStyle}
         />
       </TouchableOpacity>
       <Text>{recordingStatus.isRecording ? "recording" : "not recording"}</Text>
@@ -214,9 +216,9 @@ export default function App() {
           <Image
             style={styles.image}
             source={
-              this.state.isPlaying
-                ? Icons.PAUSE_BUTTON.module
-                : Icons.PLAY_BUTTON.module
+              soundStatus.isPlaying
+                ? require('./assets/baseline_pause_black_18dp.png')
+                : require('./assets/baseline_play_arrow_black_18dp.png')
             }
           />
         </TouchableHighlight>
@@ -224,17 +226,12 @@ export default function App() {
           style={styles.playbackSlider}
           // trackImage={Icons.TRACK_1.module}
           // thumbImage={Icons.THUMB_1.module}
-          value={getSeekSliderPosition()}
+          value={getSeekSliderPosition}
           onValueChange={onSeekSliderValueChange}
           onSlidingComplete={onSeekSliderSlidingComplete}
         // disabled={!this.state.isPlaybackAllowed || this.state.isLoading}
         />
-        <Text
-          style={[
-            styles.playbackTimestamp,
-            { fontFamily: "cutive-mono-regular" },
-          ]}
-        >
+        <Text>
           {getPlaybackTimestamp()}
         </Text>
       </View>
@@ -259,8 +256,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     alignSelf: "stretch",
-    minHeight: Icons.THUMB_1.height * 2.0,
-    maxHeight: Icons.THUMB_1.height * 2.0,
+    // minHeight: Icons.THUMB_1.height * 2.0,
+    // maxHeight: Icons.THUMB_1.height * 2.0,
   },
   playbackSlider: {
     alignSelf: "stretch",

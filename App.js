@@ -102,7 +102,7 @@ export default function App() {
               size={width * 0.06}
             />
           </TouchableOpacity>
-          <Text>{recordingStatus.recordingDuration}</Text>
+          <Text>{getMMSSFromMillis(recordingStatus.recordingDuration)}</Text>
           <TouchableOpacity
             style={{ alignItems: 'center', justifyContent: 'center' }}
             onPress={() => stopRecording()}
@@ -298,7 +298,7 @@ export default function App() {
     setRecording(null);
     console.log('Recording stopped and stored at', uri);
     // Get sound for playback
-    const { new_sound, status } = await recording.createNewLoadedSoundAsync(
+    const { new_sound, new_status } = await recording.createNewLoadedSoundAsync(
       {
         isLooping: true,
         isMuted: false,

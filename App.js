@@ -1,4 +1,4 @@
-import { Block, Input } from "galio-framework";
+import { Block, Input, Text } from "galio-framework";
 import React, { useState } from "react";
 import {
   StyleSheet,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
+  ScrollView,
+  KeyboardAvoidingView,
+  SafeAreaView,
 } from "react-native";
 import {
   AntDesign,
@@ -14,7 +17,19 @@ import {
   FontAwesome,
 } from "@expo/vector-icons";
 import Microphone from "./components/Microphone";
+import React, { useRef } from "react";
+import {
+  StyleSheet,
+  View,
+  Dimensions,
+} from "react-native";
+import Header from "../AppHome/Header";
+import { useSelector } from "react-redux";
+import COMMON_STYLES from "../../../assets/styles";
+
 const { width } = Dimensions.get("window");
+const PUBLIC_CONVERSATION_ID = "123456789";
+const PUBLIC_RECIEVER_ID = "00000";
 
 const SendBox = () => {
   const [message, setMessage] = useState("");
@@ -57,6 +72,88 @@ const SendBox = () => {
     </Block>
   );
 };
+
+const { width, height } = Dimensions.get("window");
+
+const PublicChat = () => {
+  const publicConversations = useSelector(
+    (state) => state.conversations.public
+  );
+  const myPhoneNumber = useSelector((state) => state.app.auth.phone);
+  const scrollViewRef = useRef(null);
+
+  const renderMessages = () => {
+    return publicConversations.data.map((msg, index) => {
+      const hasMatched = msg.sender === myPhoneNumber;
+      return (
+        <View
+          style={{
+            flexDirection: hasMatched ? "row-reverse" : "row",
+          }}
+          key={`msg-${index}`}
+        >
+          {msg.type === "image" ? (
+            <ImageMessage fromMe={hasMatched} message={msg} />
+          ) : msg.type === "text" ? (
+            <TextMessage fromMe={hasMatched} message={msg} />
+          ) : msg.type === "video" ? (
+            <VideoMessage fromMe={hasMatched} message={msg} />
+          ) : null}
+        </View>
+      );
+    });
+  };
+
+  return (
+    <SafeAreaView>
+      <KeyboardAvoidingView
+        style={{
+          backgroundColor: "white",
+          height: height,
+          width: width,
+          justifyContent: "space-between",
+        }}
+        behavior="height"
+        keyboardVerticalOffset={30}
+      >
+        <Block flex style={styles.container}>
+          <Header title="#Public Conversations" enableGoBack={true} />
+          {publicConversations.isLoading ? (
+            <Text>Loading</Text>
+          ) : publicConversations.hasError ? (
+            <Text>{publicConversations.errMsg}</Text>
+          ) : publicConversations.data.length === 0 ? (
+            <Text>Start a conversation...</Text>
+          ) : (
+                  <ScrollView
+                    ref={scrollViewRef}
+                    onContentSizeChange={(contentWidth, contentHeight) => {
+                      scrollViewRef.current.scrollToEnd({ animated: false });
+                    }}
+                    contentContainerStyle={[COMMON_STYLES.chatContainer]}
+                  >
+                    {renderMessages()}
+                  </ScrollView>
+                )}
+          <SendBox
+            target="public"
+            conversationId={PUBLIC_CONVERSATION_ID}
+            recieverId={PUBLIC_RECIEVER_ID}
+          />
+        </Block>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+  },
+});
+
+export default PublicChat;
+
 
 const styles = StyleSheet.create({
   sendBox: {

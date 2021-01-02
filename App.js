@@ -24,8 +24,7 @@ import {
   Dimensions,
 } from "react-native";
 import Header from "../AppHome/Header";
-import { useSelector } from "react-redux";
-import COMMON_STYLES from "../../../assets/styles";
+import VoiceMessage from "./components/VoiceMessage";
 
 const { width } = Dimensions.get("window");
 const PUBLIC_CONVERSATION_ID = "123456789";
@@ -76,28 +75,20 @@ const SendBox = () => {
 const { width, height } = Dimensions.get("window");
 
 const PublicChat = () => {
-  const publicConversations = useSelector(
-    (state) => state.conversations.public
-  );
-  const myPhoneNumber = useSelector((state) => state.app.auth.phone);
+  const [publicConversations, setPublicConversations] = useState([])
   const scrollViewRef = useRef(null);
 
   const renderMessages = () => {
-    return publicConversations.data.map((msg, index) => {
-      const hasMatched = msg.sender === myPhoneNumber;
+    return publicConversations.map((msg, index) => {
       return (
         <View
           style={{
-            flexDirection: hasMatched ? "row-reverse" : "row",
+            flexDirection: "row",
           }}
           key={`msg-${index}`}
         >
-          {msg.type === "image" ? (
-            <ImageMessage fromMe={hasMatched} message={msg} />
-          ) : msg.type === "text" ? (
-            <TextMessage fromMe={hasMatched} message={msg} />
-          ) : msg.type === "video" ? (
-            <VideoMessage fromMe={hasMatched} message={msg} />
+          {msg.type === "voice" ? (
+            <VoiceMessage fromMe={true} message={msg} />
           ) : null}
         </View>
       );
@@ -118,23 +109,19 @@ const PublicChat = () => {
       >
         <Block flex style={styles.container}>
           <Header title="#Public Conversations" enableGoBack={true} />
-          {publicConversations.isLoading ? (
-            <Text>Loading</Text>
-          ) : publicConversations.hasError ? (
-            <Text>{publicConversations.errMsg}</Text>
-          ) : publicConversations.data.length === 0 ? (
+          {publicConversations.length === 0 ? (
             <Text>Start a conversation...</Text>
           ) : (
-                  <ScrollView
-                    ref={scrollViewRef}
-                    onContentSizeChange={(contentWidth, contentHeight) => {
-                      scrollViewRef.current.scrollToEnd({ animated: false });
-                    }}
-                    contentContainerStyle={[COMMON_STYLES.chatContainer]}
-                  >
-                    {renderMessages()}
-                  </ScrollView>
-                )}
+              <ScrollView
+                ref={scrollViewRef}
+                onContentSizeChange={(contentWidth, contentHeight) => {
+                  scrollViewRef.current.scrollToEnd({ animated: false });
+                }}
+                contentContainerStyle={[COMMON_STYLES.chatContainer]}
+              >
+                {renderMessages()}
+              </ScrollView>
+            )}
           <SendBox
             target="public"
             conversationId={PUBLIC_CONVERSATION_ID}
@@ -146,19 +133,79 @@ const PublicChat = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#fff",
+const COMMON_STYLES = StyleSheet.create({
+  chatContainer: {
+    padding: 20,
+  },
+  message: {
+    padding: 20,
+    marginBottom: 5,
+  },
+  messageText: {
+    fontFamily: "SourceSansPro-Regular",
+    fontSize: 18,
+  },
+  sentMessage: {
+    backgroundColor: "#F04E58",
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 0,
+    paddingRight: 150,
+  },
+  sentMessageText: {
+    color: "#FFFFFF",
+  },
+  sentMessageTimestamp: {
+    position: "absolute",
+    fontSize: 12,
+    fontFamily: "SourceSansPro-Regular",
+    width: 130,
+    bottom: 0,
+    right: 2,
+    padding: 2,
+    textAlign: "right",
+    color: "#fff",
+    opacity: 0.8,
+  },
+  recievedMessage: {
+    backgroundColor: "#EFF3F7",
+    borderWidth: 1,
+    borderColor: "#E9F1F9",
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingBottom: 30,
+    paddingLeft: 120,
+  },
+  recievedMessageText: {
+    color: "#2D2343",
+  },
+  recievedMessageTimestamp: {
+    position: "absolute",
+    fontSize: 12,
+    fontFamily: "SourceSansPro-Regular",
+    width: 130,
+    bottom: 0,
+    right: 5,
+    padding: 2,
+    textAlign: "right",
+    color: "#1F212B",
+    opacity: 0.8,
+  },
+  shadow: {
+    shadowColor: Theme.COLORS.BLACK,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    shadowOpacity: 0.1,
+    elevation: 2,
   },
 });
-
-export default PublicChat;
-
 
 const styles = StyleSheet.create({
   sendBox: {
     padding: 10,
-    marginTop: 800,
     borderTopWidth: 1,
     borderTopColor: "#EFEFEF",
     flexDirection: "row",
@@ -177,6 +224,9 @@ const styles = StyleSheet.create({
   controls: {
     padding: 10,
   },
+  container: {
+    backgroundColor: "#fff",
+  },
 });
 
-export default SendBox;
+export default PublicChat;

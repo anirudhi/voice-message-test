@@ -6,10 +6,8 @@ import {
     TouchableOpacity,
     ActivityIndicator,
 } from "react-native";
-import COMMON_STYLES from "../../../assets/styles";
+import COMMON_STYLES from "../App";
 import moment from "moment";
-import FastImage from "react-native-fast-image";
-import { imageEnvironment } from "../../../environment";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from '@react-native-community/slider';
 
@@ -115,7 +113,7 @@ const VoiceMessage = ({ fromMe, message }) => {
                     fromMe ? COMMON_STYLES.sentMessage : COMMON_STYLES.recievedMessage,
                 ]}
             >
-                <FastImage
+                {/* <FastImage
                     style={styles.image}
                     source={{
                         uri: ipfsPath ? imageEnvironment + ipfsPath : img,
@@ -125,7 +123,7 @@ const VoiceMessage = ({ fromMe, message }) => {
                     onLoadStart={() => setIsLoading(true)}
                     onError={() => setHasError(true)}
                     onLoadEnd={() => setIsLoading(false)}
-                />
+                /> */}
 
                 <Text
                     style={

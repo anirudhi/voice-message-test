@@ -10,8 +10,11 @@ import {
 } from 'react-native';
 import { Audio } from 'expo-av';
 import {
+    AntDesign,
     MaterialCommunityIcons,
+    FontAwesome,
 } from "@expo/vector-icons";
+import COMMON_STYLES from '../App'
 import IconFour from 'react-native-vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
@@ -32,8 +35,7 @@ function getMMSSFromMillis(millis) {
     return padWithZero(minutes) + ":" + padWithZero(seconds);
 }
 
-
-export default function Microphone(props) {
+function Microphone(props) {
     const [recording, setRecording] = useState(null);
     const [recordingArr, setRecordingArr] = useState([]);
     const [recordingStatus, setRecordingStatus] = useState({
@@ -43,57 +45,6 @@ export default function Microphone(props) {
     let [isMicrophonePopUpVisible, setIsMicrophonePopUpVisible] = useState(false)
 
     recordingSettings = Audio.RECORDING_OPTIONS_PRESET_LOW_QUALITY;
-
-    const renderModal = isMicrophonePopUpVisible ?
-        (
-            <View
-                style={{
-                    width: width,
-                    backgroundColor: '#e8eaed',
-                    height: height * 0.11,
-                    paddingHorizontal: width * 0.02,
-                    flexDirection: 'row',
-                    justifyContent: 'space-around',
-                    alignItems: 'center'
-                }}
-            >
-                <Modal
-                    visible={isMicrophonePopUpVisible}
-                    animationType="fade"
-                    transparent={true}
-                    onRequestClose={() => setIsMicrophonePopUpVisible(false)}
-                >
-                    <TouchableOpacity
-                        style={styles.container}
-                        onPress={() => setIsMicrophonePopUpVisible(false)}
-                    >
-                        <Block style={styles.attachment}>
-                            <TouchableOpacity
-                                style={{ alignItems: 'center', justifyContent: 'center' }}
-                                onPress={() => saveRecording()}
-                            >
-                                <IconFour
-                                    name="send"
-                                    color="green"
-                                    size={width * 0.06}
-                                />
-                            </TouchableOpacity>
-                            <Text>{getMMSSFromMillis(recordingStatus.recordingDuration)}</Text>
-                            <TouchableOpacity
-                                style={{ alignItems: 'center', justifyContent: 'center' }}
-                                onPress={() => stopRecording()}
-                            >
-                                <IconFour
-                                    name="close"
-                                    color="red"
-                                    size={width * 0.06}
-                                />
-                            </TouchableOpacity>
-                        </Block>
-                    </TouchableOpacity>
-                </Modal>
-            </View>
-        ) : null
 
 
     function updateRecordingStatus(status) {
@@ -125,7 +76,6 @@ export default function Microphone(props) {
             new_recording.setOnRecordingStatusUpdate(updateRecordingStatus);
             status = await new_recording.startAsync();
             setRecording(new_recording);
-            setIsMicrophonePopUpVisible(true)
             console.log('Recording started');
         } catch (err) {
             console.error('Failed to start recording', err);
@@ -148,31 +98,74 @@ export default function Microphone(props) {
         props.recordingUri(uri)
     }
 
+    const renderModal = isMicrophonePopUpVisible ?
+        (
+            <Modal
+                visible={isMicrophonePopUpVisible}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setIsMicrophonePopUpVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.container}
+                    onPress={() => setIsMicrophonePopUpVisible(false)}
+                >
+                    <Block style={styles.attachment}>
+                        <TouchableOpacity
+                            onPress={() => saveRecording()}
+                            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                        >
+                            <View style={[styles.buttons, COMMON_STYLES.shadow]}>
+                                <MaterialCommunityIcons
+                                    name="send"
+                                    size={25}
+                                    color="green"
+                                />
+                            </View>
+                        </TouchableOpacity>
+                        <Text>{getMMSSFromMillis(recordingStatus.recordingDuration)}</Text>
+                        <TouchableOpacity
+                            onPress={() => stopRecording()}
+                            hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+
+                        >
+                            <View style={[styles.buttons, COMMON_STYLES.shadow]}>
+                                <MaterialCommunityIcons
+                                    name="close"
+                                    color="red"
+                                    size={25}
+                                />
+                            </View>
+                        </TouchableOpacity>
+                    </Block>
+                </TouchableOpacity>
+            </Modal>
+        ) : null
+
     return (
-        <View style={styles.container}>
+        <View>
             <TouchableOpacity
-                onPress={() => startRecording()}
+                style={styles.container}
+                onPress={() => {
+                    startRecording();
+                    setIsMicrophonePopUpVisible(true)
+                }}
                 hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
             >
-                <View style={styles.controls}>
-                    <MaterialCommunityIcons
-                        name="microphone-settings"
-                        size={25}
-                        color="#4A4A4A"
-                    />
+                <View style={{ padding: 12 }}>
+                    <FontAwesome name="microphone" size={25} color="#4A4A4A" />
                 </View>
             </TouchableOpacity>
-            { renderModal}
-        </View >
+            {renderModal}
+        </View>
     );
 }
+
+export default Microphone;
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     ButtonStyle: {
         backgroundColor: '#9DEBD9',
@@ -180,13 +173,39 @@ const styles = StyleSheet.create({
     },
     attachment: {
         position: "absolute",
-        bottom: 50,
+        bottom: 90,
         backgroundColor: "#eee",
         paddingTop: 20,
         paddingBottom: 20,
-        width: width,
+        width: width - 20,
         borderRadius: 10,
         flexDirection: "row",
         margin: 10,
+    },
+    sendBox: {
+        padding: 10,
+        borderTopWidth: 1,
+        borderTopColor: "#EFEFEF",
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    messageInput: {
+        borderWidth: 0,
+        borderColor: '#ffffff',
+        height: 50,
+        fontFamily: "SourceSansPro-Regular",
+        backgroundColor: "#FFF",
+        borderColor: "#DEDEDE",
+        margin: 0,
+        width: width - width / 3,
+    },
+    controls: {
+        padding: 12,
+    },
+    buttons: {
+        padding: 20,
+        marginLeft: 10,
+        backgroundColor: "#fff",
+        borderRadius: 50,
     },
 });

@@ -1,5 +1,4 @@
 import { StyleSheet, Dimensions } from "react-native";
-import Theme from "../../constants/Theme";
 const { width, height } = Dimensions.get("window");
 
 const COMMON_STYLES = StyleSheet.create({
@@ -11,7 +10,7 @@ const COMMON_STYLES = StyleSheet.create({
     marginBottom: 5,
   },
   messageText: {
-    fontFamily: "SourceSansPro-Regular",
+    // fontFamily: "SourceSansPro-Regular",
     fontSize: 18,
   },
   sentMessage: {
@@ -28,7 +27,7 @@ const COMMON_STYLES = StyleSheet.create({
   sentMessageTimestamp: {
     position: "absolute",
     fontSize: 12,
-    fontFamily: "SourceSansPro-Regular",
+    // fontFamily: "SourceSansPro-Regular",
     width: 130,
     bottom: 0,
     right: 2,
@@ -55,7 +54,7 @@ const COMMON_STYLES = StyleSheet.create({
   recievedMessageTimestamp: {
     position: "absolute",
     fontSize: 12,
-    fontFamily: "SourceSansPro-Regular",
+    // fontFamily: "SourceSansPro-Regular",
     width: 130,
     bottom: 0,
     right: 5,
@@ -65,7 +64,7 @@ const COMMON_STYLES = StyleSheet.create({
     opacity: 0.8,
   },
   shadow: {
-    shadowColor: Theme.COLORS.BLACK,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     shadowOpacity: 0.1,

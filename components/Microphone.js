@@ -9,15 +9,38 @@ import {
     Modal
 } from 'react-native';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system'
 import {
-    AntDesign,
     MaterialCommunityIcons,
     FontAwesome,
 } from "@expo/vector-icons";
-import COMMON_STYLES from '../App'
-import IconFour from 'react-native-vector-icons/Ionicons';
+import COMMON_STYLES from "../assets/styles"
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+const recording_settings =
+{
+    android: {
+        extension: '.m4a',
+        outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
+        audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_DEFAULT,
+        sampleRate: 8000,
+        numberOfChannels: 1,
+        bitRate: 128000,
+    },
+    ios: {
+        extension: '.m4a',
+        outputFormat: Audio.R,
+        audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+        sampleRate: 8000,
+        numberOfChannels: 1,
+        bitRate: 128000,
+        linearPCMBitDepth: 16,
+        linearPCMIsBigEndian: false,
+        linearPCMIsFloat: false,
+    }
+};
+
 
 
 function getMMSSFromMillis(millis) {
@@ -90,12 +113,21 @@ function Microphone(props) {
         setRecordingArr(recordingArr.concat(uri))
         setRecording(null);
         console.log('Recording stopped and stored at', uri);
-        return uri
+        return uri;
     }
 
     async function saveRecording() {
-        uri = await stopRecording()
-        props.recordingUri(uri)
+        let uri = await stopRecording()
+        let fileInfo = await FileSystem.getInfoAsync(uri)
+        if (fileInfo.exists) {
+            let fileObj = {
+                fileName: uri.split('/').pop(),
+                fileSize: fileInfo.size,
+                uri: uri,
+                type: 'audio/m4a',
+            }
+            props.recordingUri(fileObj)
+        }
     }
 
     const renderModal = isMicrophonePopUpVisible ?
@@ -104,15 +136,24 @@ function Microphone(props) {
                 visible={isMicrophonePopUpVisible}
                 animationType="fade"
                 transparent={true}
-                onRequestClose={() => setIsMicrophonePopUpVisible(false)}
+                onRequestClose={() => {
+                    stopRecording();
+                    setIsMicrophonePopUpVisible(false);
+                }}
             >
                 <TouchableOpacity
                     style={styles.container}
-                    onPress={() => setIsMicrophonePopUpVisible(false)}
+                    onPress={() => {
+                        stopRecording();
+                        setIsMicrophonePopUpVisible(false);
+                    }}
                 >
-                    <Block style={styles.attachment}>
+                    <Block space="between" style={styles.attachment}>
                         <TouchableOpacity
-                            onPress={() => saveRecording()}
+                            onPress={() => {
+                                saveRecording();
+                                setIsMicrophonePopUpVisible(false);
+                            }}
                             hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
                         >
                             <View style={[styles.buttons, COMMON_STYLES.shadow]}>
@@ -123,9 +164,12 @@ function Microphone(props) {
                                 />
                             </View>
                         </TouchableOpacity>
-                        <Text>{getMMSSFromMillis(recordingStatus.recordingDuration)}</Text>
+                        <Text style={styles.timestamp}>{getMMSSFromMillis(recordingStatus.recordingDuration)}</Text>
                         <TouchableOpacity
-                            onPress={() => stopRecording()}
+                            onPress={() => {
+                                stopRecording();
+                                setIsMicrophonePopUpVisible(false);
+                            }}
                             hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
 
                         >
@@ -166,6 +210,7 @@ export default Microphone;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        alignItems: "center",
     },
     ButtonStyle: {
         backgroundColor: '#9DEBD9',
@@ -181,31 +226,17 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         flexDirection: "row",
         margin: 10,
-    },
-    sendBox: {
-        padding: 10,
-        borderTopWidth: 1,
-        borderTopColor: "#EFEFEF",
-        flexDirection: "row",
         alignItems: "center",
-    },
-    messageInput: {
-        borderWidth: 0,
-        borderColor: '#ffffff',
-        height: 50,
-        fontFamily: "SourceSansPro-Regular",
-        backgroundColor: "#FFF",
-        borderColor: "#DEDEDE",
-        margin: 0,
-        width: width - width / 3,
-    },
-    controls: {
-        padding: 12,
     },
     buttons: {
         padding: 20,
         marginLeft: 10,
+        marginRight: 10,
         backgroundColor: "#fff",
         borderRadius: 50,
     },
+    timestamp: {
+        fontSize: 20,
+        fontWeight: "600"
+    }
 });

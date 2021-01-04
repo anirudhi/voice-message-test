@@ -5,11 +5,13 @@ import {
     View,
     TouchableOpacity,
     ActivityIndicator,
+    Button,
 } from "react-native";
-import COMMON_STYLES from "../App";
+import COMMON_STYLES from "../assets/styles";
 import moment from "moment";
 import { MaterialIcons } from "@expo/vector-icons";
 import Slider from '@react-native-community/slider';
+import { Audio, FileSystem } from 'expo-av';
 
 
 
@@ -86,25 +88,46 @@ async function onSeekSliderSlidingComplete(value) {
 const VoiceMessage = ({ fromMe, message }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const [sound, setSound] = useState(null)
     const [soundStatus, setSoundStatus] = useState({
         soundPosition: null,
         soundDuration: null,
         isPlaying: false,
         isPlaybackAllowed: false,
     });
-    const { time, ipfsPath } = message;
-    let sound = null
     let isSeeking = false
+    let { type, msg } = message
+    let { time, file } = msg
+    let url = file.split(':')
+    console.log(url[0])
+
+    // if (url[0] == "file") {
+    //     file = FileSystem.documentDirectory + 
+    // }
+
+
+    async function playSound() {
+        console.log('Loading Sound ' + file);
+        const { sound } = await Audio.Sound.createAsync({ uri: file });
+        setSound(sound);
+
+        console.log('Playing Sound');
+        await sound.playAsync();
+    }
+
+    let renderPlayback = (
+        <View style={styles.container}>
+            <Button title="Play Sound" onPress={playSound} />
+        </View>
+    );
+
     return (
-        <TouchableOpacity
-            // onPress={() => imageFunction(imageEnvironment + item.ipfsPath)}
-            onPress={() => console.log("Image Clicked")}
-        >
+        <View>
             <View style={styles.placeholders}>
                 {isLoading ? (
                     <ActivityIndicator size="large" color={"#ccc"} />
                 ) : hasError ? (
-                    <MaterialIcons name="broken-image" color={"#ccc"} size={30} />
+                    <MaterialIcons name="volume-off" color={"#ccc"} size={30} />
                 ) : null}
             </View>
             <View
@@ -113,18 +136,7 @@ const VoiceMessage = ({ fromMe, message }) => {
                     fromMe ? COMMON_STYLES.sentMessage : COMMON_STYLES.recievedMessage,
                 ]}
             >
-                {/* <FastImage
-                    style={styles.image}
-                    source={{
-                        uri: ipfsPath ? imageEnvironment + ipfsPath : img,
-                        priority: FastImage.priority.low,
-                    }}
-                    resizeMode={FastImage.resizeMode.contain}
-                    onLoadStart={() => setIsLoading(true)}
-                    onError={() => setHasError(true)}
-                    onLoadEnd={() => setIsLoading(false)}
-                /> */}
-
+                {renderPlayback}
                 <Text
                     style={
                         fromMe
@@ -135,7 +147,7 @@ const VoiceMessage = ({ fromMe, message }) => {
                     {moment(time).format("lll").toString()}
                 </Text>
             </View>
-        </TouchableOpacity>
+        </View>
     );
 };
 

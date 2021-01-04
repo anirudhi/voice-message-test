@@ -17,6 +17,7 @@ import {
 } from "@expo/vector-icons";
 import Microphone from "./components/Microphone";
 import VoiceMessage from "./components/VoiceMessage";
+import COMMON_STYLES from "./assets/styles"
 
 const PUBLIC_CONVERSATION_ID = "123456789";
 const PUBLIC_RECIEVER_ID = "00000";
@@ -50,11 +51,26 @@ const Header = ({ title, enableGoBack }) => {
   );
 };
 
-const SendBox = () => {
+const SendBox = ({ target, conversationId, reciever, updateMessages }) => {
   const [message, setMessage] = useState("");
+  const [recordingUri, setRecordingUri] = useState("");
   const [isAttachmentPopUpVisible, setIsAttachmentPopUpVisible] = useState(
     false
   );
+
+  function addRecordingMessage(uri) {
+    let recMessage = {
+      type: "voice",
+      msg: {
+        conversationId,
+        reciever,
+        time: Date.now(),
+        file: uri,
+      }
+    };
+    updateMessages(recMessage);
+  }
+
   return (
     <Block style={sendStyles.sendBox}>
       <Input
@@ -127,7 +143,7 @@ const SendBox = () => {
             </Block>
           </TouchableOpacity>
         </Modal>
-        <Microphone recordingUri={(uri) => { console.log(uri) }} />
+        <Microphone recordingUri={(uri) => { addRecordingMessage(uri) }} />
       </View>
     </Block >
   );
@@ -137,7 +153,12 @@ const PublicChat = () => {
   const [publicConversations, setPublicConversations] = useState([])
   const scrollViewRef = useRef(null);
 
+  const updateMessages = (msg) => {
+    setPublicConversations(publicConversations.concat(msg));
+  }
+
   const renderMessages = () => {
+    console.log(publicConversations.length)
     return publicConversations.map((msg, index) => {
       return (
         <View
@@ -185,82 +206,13 @@ const PublicChat = () => {
             target="public"
             conversationId={PUBLIC_CONVERSATION_ID}
             recieverId={PUBLIC_RECIEVER_ID}
+            updateMessages={updateMessages}
           />
         </Block>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
-
-export const COMMON_STYLES = StyleSheet.create({
-  chatContainer: {
-    padding: 20,
-  },
-  message: {
-    padding: 20,
-    marginBottom: 5,
-  },
-  messageText: {
-    fontFamily: "SourceSansPro-Regular",
-    fontSize: 18,
-  },
-  sentMessage: {
-    backgroundColor: "#F04E58",
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 0,
-    paddingRight: 150,
-  },
-  sentMessageText: {
-    color: "#FFFFFF",
-  },
-  sentMessageTimestamp: {
-    position: "absolute",
-    fontSize: 12,
-    fontFamily: "SourceSansPro-Regular",
-    width: 130,
-    bottom: 0,
-    right: 2,
-    padding: 2,
-    textAlign: "right",
-    color: "#fff",
-    opacity: 0.8,
-  },
-  recievedMessage: {
-    backgroundColor: "#EFF3F7",
-    borderWidth: 1,
-    borderColor: "#E9F1F9",
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    paddingBottom: 30,
-    paddingLeft: 120,
-  },
-  recievedMessageText: {
-    color: "#2D2343",
-  },
-  recievedMessageTimestamp: {
-    position: "absolute",
-    fontSize: 12,
-    fontFamily: "SourceSansPro-Regular",
-    width: 130,
-    bottom: 0,
-    right: 5,
-    padding: 2,
-    textAlign: "right",
-    color: "#1F212B",
-    opacity: 0.8,
-  },
-  shadow: {
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    shadowOpacity: 0.1,
-    elevation: 2,
-  },
-});
 
 const styles = StyleSheet.create({
   container: {
@@ -313,7 +265,7 @@ const sendStyles = StyleSheet.create({
     borderWidth: 0,
     borderColor: '#ffffff',
     height: 50,
-    fontFamily: "SourceSansPro-Regular",
+    // fontFamily: "SourceSansPro-Regular",
     backgroundColor: "#FFF",
     borderColor: "#DEDEDE",
     margin: 0,

@@ -18,30 +18,20 @@ import COMMON_STYLES from "../assets/styles"
 
 const { width } = Dimensions.get('window');
 
-const recording_settings =
-{
+const recording_settings = {
     android: {
         extension: '.m4a',
         outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
         audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_DEFAULT,
-        sampleRate: 8000,
-        numberOfChannels: 1,
-        bitRate: 128000,
     },
     ios: {
         extension: '.m4a',
-        outputFormat: Audio.R,
         audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
         sampleRate: 8000,
         numberOfChannels: 1,
         bitRate: 128000,
-        linearPCMBitDepth: 16,
-        linearPCMIsBigEndian: false,
-        linearPCMIsFloat: false,
     }
 };
-
-
 
 function getMMSSFromMillis(millis) {
     const totalSeconds = millis / 1000;
@@ -95,7 +85,7 @@ function Microphone(props) {
             });
             console.log('Starting recording..');
             const new_recording = new Audio.Recording();
-            await new_recording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
+            await new_recording.prepareToRecordAsync(recording_settings);
             new_recording.setOnRecordingStatusUpdate(updateRecordingStatus);
             status = await new_recording.startAsync();
             setRecording(new_recording);

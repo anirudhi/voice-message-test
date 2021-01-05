@@ -19,7 +19,7 @@ const COMMON_STYLES = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 0,
-    minWidth: 200,
+    minWidth: '80%',
   },
   sentMessageText: {
     color: "#FFFFFF",

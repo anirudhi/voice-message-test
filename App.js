@@ -58,14 +58,14 @@ const SendBox = ({ target, conversationId, reciever, updateMessages }) => {
     false
   );
 
-  function addRecordingMessage(uri) {
+  function addRecordingMessage(file) {
     let recMessage = {
       type: "voice",
       msg: {
         conversationId,
         reciever,
         time: Date.now(),
-        file: uri,
+        file: file,
       }
     };
     updateMessages(recMessage);
@@ -143,7 +143,7 @@ const SendBox = ({ target, conversationId, reciever, updateMessages }) => {
             </Block>
           </TouchableOpacity>
         </Modal>
-        <Microphone recordingUri={(uri) => { addRecordingMessage(uri) }} />
+        <Microphone recordingUri={(file) => { addRecordingMessage(file) }} />
       </View>
     </Block >
   );
@@ -163,7 +163,7 @@ const PublicChat = () => {
       return (
         <View
           style={{
-            flexDirection: "row",
+            flexDirection: "row-reverse",
           }}
           key={`msg-${index}`}
         >

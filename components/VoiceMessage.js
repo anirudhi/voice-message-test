@@ -1,18 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Block } from "galio-framework";
 import {
     StyleSheet,
     Text,
     View,
     TouchableOpacity,
+    TouchableHighlight,
     ActivityIndicator,
     Button,
+    Fragment,
 } from "react-native";
 import COMMON_STYLES from "../assets/styles";
 import moment from "moment";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
 import Slider from '@react-native-community/slider';
-import { Audio, FileSystem } from 'expo-av';
-
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system'
+import { withTheme } from "react-native-elements";
 
 
 function onSeekSliderValueChange(value) {
@@ -33,48 +37,21 @@ function getSeekSliderPosition() {
     return 0;
 }
 
-function getPlaybackTimestamp() {
-    if (
-        sound != null &&
-        soundStatus.soundPosition != null &&
-        soundStatus.soundDuration != null
-    ) {
-        return `${getMMSSFromMillis(
-            soundStatus.soundPosition
-        )} / ${getMMSSFromMillis(soundStatus.soundDuration)}`;
-    }
-    return "";
+function getMMSSFromMillis(millis) {
+    const totalSeconds = millis / 1000;
+    const seconds = Math.floor(totalSeconds % 60);
+    const minutes = Math.floor(totalSeconds / 60);
+
+    const padWithZero = (number) => {
+        const string = number.toString();
+        if (number < 10) {
+            return "0" + string;
+        }
+        return string;
+    };
+    return padWithZero(minutes) + ":" + padWithZero(seconds);
 }
 
-function onPlayPausePressed() {
-    if (sound != null) {
-        if (soundStatus.isPlaying) {
-            sound.pauseAsync();
-        } else {
-            sound.playAsync();
-        }
-    }
-};
-
-function updateScreenForSoundStatus(status) {
-    if (status.isLoaded) {
-        setSoundStatus({
-            soundDuration: status.durationMillis ?? null,
-            soundPosition: status.positionMillis,
-            isPlaying: status.isPlaying,
-            isPlaybackAllowed: true,
-        });
-    } else {
-        setSoundStatus({
-            soundDuration: null,
-            soundPosition: null,
-            isPlaybackAllowed: false,
-        });
-        if (status.error) {
-            console.log(`FATAL PLAYER ERROR: ${status.error}`);
-        }
-    }
-}
 
 async function onSeekSliderSlidingComplete(value) {
     if (sound != null) {
@@ -98,27 +75,92 @@ const VoiceMessage = ({ fromMe, message }) => {
     let isSeeking = false
     let { type, msg } = message
     let { time, file } = msg
-    let url = file.split(':')
+    let { uri, fileName } = file
+    let url = uri.split(':')
     console.log(url[0])
 
-    // if (url[0] == "file") {
-    //     file = FileSystem.documentDirectory + 
-    // }
-
-
-    async function playSound() {
-        console.log('Loading Sound ' + file);
-        const { sound } = await Audio.Sound.createAsync({ uri: file });
-        setSound(sound);
-
-        console.log('Playing Sound');
-        await sound.playAsync();
+    function updateScreenForSoundStatus(status) {
+        if (status.isLoaded) {
+            setSoundStatus({
+                soundDuration: status.durationMillis,
+                soundPosition: status.positionMillis,
+                isPlaying: status.isPlaying,
+                isPlaybackAllowed: true,
+            });
+        } else {
+            setSoundStatus({
+                soundDuration: null,
+                soundPosition: null,
+                isPlaybackAllowed: false,
+            });
+            if (status.error) {
+                console.log(`FATAL PLAYER ERROR: ${status.error}`);
+            }
+        }
     }
 
-    let renderPlayback = (
-        <View style={styles.container}>
-            <Button title="Play Sound" onPress={playSound} />
-        </View>
+    function onPlayPausePressed() {
+        console.log("pressed");
+        if (sound != null) {
+            if (soundStatus.isPlaying) {
+                sound.pauseAsync();
+            } else {
+                sound.playAsync();
+            }
+        }
+    };
+
+    async function loadSound() {
+        await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+        });
+        console.log('Loading Sound ' + uri);
+        const { sound } = await Audio.Sound.createAsync({ uri }, {}, updateScreenForSoundStatus, false);
+        setSound(sound);
+    }
+
+    useEffect(() => {
+        loadSound();
+    }, [])
+
+    const getPlaybackTimestamp = () => {
+        if (
+            sound != null &&
+            soundStatus.soundPosition != null &&
+            soundStatus.soundDuration != null
+        ) {
+            return `${getMMSSFromMillis(
+                soundStatus.soundPosition
+            )} / ${getMMSSFromMillis(soundStatus.soundDuration)}`;
+        }
+        return "";
+    }
+
+    const renderPlayback = () => (
+        <Block style={styles.container}>
+            <TouchableOpacity
+                onPress={() => onPlayPausePressed()}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                style={styles.ButtonStyle}
+            >
+                {soundStatus.isPlaying ?
+                    <FontAwesome
+                        name="pause"
+                        size={15}
+                        color="white"
+                    />
+                    :
+                    <FontAwesome
+                        name="play"
+                        size={15}
+                        color="white"
+                    />}
+            </TouchableOpacity>
+            <Text style={styles.playbackTimestamp}>{getPlaybackTimestamp()}</Text>
+            <Block style={{ flex: 1 }}>
+                <Slider></Slider>
+            </Block>
+        </Block>
     );
 
     return (
@@ -136,7 +178,7 @@ const VoiceMessage = ({ fromMe, message }) => {
                     fromMe ? COMMON_STYLES.sentMessage : COMMON_STYLES.recievedMessage,
                 ]}
             >
-                {renderPlayback}
+                {renderPlayback()}
                 <Text
                     style={
                         fromMe
@@ -156,13 +198,12 @@ export default VoiceMessage;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: "row",
     },
     ButtonStyle: {
-        backgroundColor: '#9DEBD9',
-        padding: 10
+        paddingRight: 10
     },
     playbackContainer: {
         flex: 1,
@@ -177,8 +218,8 @@ const styles = StyleSheet.create({
         alignSelf: "stretch",
     },
     playbackTimestamp: {
-        textAlign: "right",
-        alignSelf: "stretch",
-        paddingRight: 20,
+        paddingRight: 10,
+        paddingLeft: 10,
+        color: "#fff",
     },
 });

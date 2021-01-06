@@ -5,37 +5,19 @@ import {
     Text,
     View,
     TouchableOpacity,
-    TouchableHighlight,
     ActivityIndicator,
     Button,
     Fragment,
+    Dimensions,
 } from "react-native";
 import COMMON_STYLES from "../assets/styles";
 import moment from "moment";
-import { MaterialCommunityIcons, FontAwesome } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import Slider from '@react-native-community/slider';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system'
-import { withTheme } from "react-native-elements";
 
-
-function onSeekSliderValueChange(value) {
-    if (sound != null && !isSeeking) {
-        isSeeking = true;
-        sound.pauseAsync();
-    }
-};
-
-function getSeekSliderPosition() {
-    if (
-        sound != null &&
-        soundStatus.soundPosition != null &&
-        soundStatus.soundDuration != null
-    ) {
-        return soundStatus.soundPosition / soundStatus.soundDuration;
-    }
-    return 0;
-}
+const { width } = Dimensions.get('window');
 
 function getMMSSFromMillis(millis) {
     const totalSeconds = millis / 1000;
@@ -51,16 +33,6 @@ function getMMSSFromMillis(millis) {
     };
     return padWithZero(minutes) + ":" + padWithZero(seconds);
 }
-
-
-async function onSeekSliderSlidingComplete(value) {
-    if (sound != null) {
-        isSeeking = false;
-        const seekPosition = value * (soundStatus.soundDuration || 0);
-        sound.playFromPositionAsync(seekPosition);
-    }
-};
-
 
 const VoiceMessage = ({ fromMe, message }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -99,29 +71,39 @@ const VoiceMessage = ({ fromMe, message }) => {
         }
     }
 
-    function onPlayPausePressed() {
+    async function onSeekSliderSlidingComplete(value) {
+        if (sound != null) {
+            isSeeking = false;
+            const seekPosition = value * (soundStatus.soundDuration || 0);
+            sound.playFromPositionAsync(seekPosition);
+        }
+    };
+
+    const getSeekSliderPosition = () => {
+        if (
+            sound != null &&
+            soundStatus.soundPosition != null &&
+            soundStatus.soundDuration != null
+        ) {
+            return soundStatus.soundPosition / soundStatus.soundDuration;
+        }
+        return 0;
+    }
+
+    const onPlayPausePressed = () => {
         console.log("pressed");
         if (sound != null) {
             if (soundStatus.isPlaying) {
                 sound.pauseAsync();
             } else {
-                sound.playAsync();
+                if (soundStatus.soundPosition == soundStatus.soundDuration) {
+                    sound.playFromPositionAsync(0)
+                } else {
+                    sound.playAsync();
+                }
             }
         }
     };
-
-    async function loadSound() {
-        await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-        });
-        console.log('Loading Sound ' + uri);
-        const { sound } = await Audio.Sound.createAsync({ uri }, {}, updateScreenForSoundStatus, false);
-        setSound(sound);
-    }
-
-    useEffect(() => {
-        loadSound();
-    }, [])
 
     const getPlaybackTimestamp = () => {
         if (
@@ -135,6 +117,20 @@ const VoiceMessage = ({ fromMe, message }) => {
         }
         return "";
     }
+
+    async function loadSound() {
+        await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+        });
+        console.log('Loading Sound ' + uri);
+        const { sound } = await Audio.Sound.createAsync({ uri }, {}, updateScreenForSoundStatus, false);
+        setSound(sound);
+        // sound.setIsLoopingAsync(true)
+    }
+
+    useEffect(() => {
+        loadSound();
+    }, [])
 
     const renderPlayback = () => (
         <Block style={styles.container}>
@@ -158,7 +154,12 @@ const VoiceMessage = ({ fromMe, message }) => {
             </TouchableOpacity>
             <Text style={styles.playbackTimestamp}>{getPlaybackTimestamp()}</Text>
             <Block style={{ flex: 1 }}>
-                <Slider></Slider>
+                <Slider
+                    minimumTrackTintColor={'#fff'}
+                    value={getSeekSliderPosition()}
+                    onSlidingComplete={onSeekSliderSlidingComplete}>
+
+                </Slider>
             </Block>
         </Block>
     );
@@ -211,8 +212,6 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         alignSelf: "stretch",
-        // minHeight: Icons.THUMB_1.height * 2.0,
-        // maxHeight: Icons.THUMB_1.height * 2.0,
     },
     playbackSlider: {
         alignSelf: "stretch",
@@ -221,5 +220,6 @@ const styles = StyleSheet.create({
         paddingRight: 10,
         paddingLeft: 10,
         color: "#fff",
+        width: width / 3 - 30
     },
 });
